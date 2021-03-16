@@ -5,10 +5,13 @@ aws s3 cp ${s3_location_runner_distribution} actions-runner.tar.gz
 tar xzf ./actions-runner.tar.gz
 rm -rf actions-runner.tar.gz
 
-${arm_patch}
+#${arm_patch}
 
 INSTANCE_ID=$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)
 REGION=$(curl -s 169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region)
+
+echo $INSTANCE_ID
+echo $REGION
 
 echo wait for configuration
 while [[ $(aws ssm get-parameters --names ${environment}-$INSTANCE_ID --with-decryption --region $REGION | jq -r ".Parameters | .[0] | .Value") == null ]]; do

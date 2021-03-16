@@ -123,7 +123,7 @@ module "runner_binaries" {
   environment = var.environment
   tags        = local.tags
 
-  distribution_bucket_name = "${var.environment}-dist-${random_string.random.result}"
+  distribution_bucket_name = "${lower(var.environment)}-dist-${random_string.random.result}"
 
   runner_architecture              = local.runner_architecture
   runner_allow_prerelease_binaries = var.runner_allow_prerelease_binaries

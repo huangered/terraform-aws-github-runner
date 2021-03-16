@@ -11,6 +11,7 @@ export interface ActionRequestMessage {
 }
 
 export const scaleUp = async (eventSource: string, payload: ActionRequestMessage): Promise<void> => {
+  console.info("hello world 1");
   if (eventSource !== 'aws:sqs') throw Error('Cannot handle non-SQS events!');
   const enableOrgLevel = yn(process.env.ENABLE_ORGANIZATION_RUNNERS, { default: true });
   const maximumRunners = parseInt(process.env.RUNNERS_MAXIMUM_COUNT || '3');
@@ -23,7 +24,9 @@ export const scaleUp = async (eventSource: string, payload: ActionRequestMessage
   if (ghesBaseUrl) {
     ghesApiUrl = `${ghesBaseUrl}/api/v3`;
   }
-
+  console.info(ghesApiUrl);
+  console.info("enable org level");
+  console.info(enableOrgLevel);
   let installationId = payload.installationId;
   if (installationId == 0) {
     const ghAuth = await createGithubAuth(undefined, 'app', ghesApiUrl);
@@ -51,10 +54,19 @@ export const scaleUp = async (eventSource: string, payload: ActionRequestMessage
     repo: payload.repositoryName,
   });
 
+  console.log("check run");
+  console.log(checkRun);
+  
   const repoName = enableOrgLevel ? undefined : `${payload.repositoryOwner}/${payload.repositoryName}`;
   const orgName = enableOrgLevel ? payload.repositoryOwner : undefined;
 
-  if (checkRun.data.status === 'queued') {
+  console.log(repoName);
+  console.log(orgName);
+  console.log(checkRun.data.status);
+  console.log(checkRun);
+  console.log(checkRun.data);
+  console.log("-----------");
+  if (checkRun.data.status === 'queued' || checkRun.data.status === 'completed' ) {
     const currentRunners = await listRunners({
       environment: environment,
       repoName: repoName,

@@ -12,6 +12,7 @@ This [Terraform](https://www.terraform.io/) module creates the required infrastr
   - [Setup GitHub App (part 1)](#setup-github-app-part-1)
   - [Setup terraform module](#setup-terraform-module)
   - [Setup GitHub App (part 2)](#setup-github-app-part-2)
+  - [Setup Github offline node](#setup-github-offline-node)
   - [Encryption](#encryption)
   - [Idle runners](#idle-runners)
 - [Examples](#examples)
@@ -184,6 +185,18 @@ Go back to the GitHub App and update the following settings.
 5. In the "Install App" section, install the App in your organization, either in all or in selected repositories.
 
 You are now ready to run action workloads on self hosted runner. Remember that builds will fail if there is no (offline) runner available with matching labels.
+
+### Setup Github Offline Node
+
+Go to a temporary machine and configure the offline node for ARM64 node
+
+```bash
+$ mkdir actions-runner && cd actions-runner
+$ curl -O -L https://github.com/actions/runner/releases/download/v2.277.1/actions-runner-linux-arm64-2.277.1.tar.gz
+$ tar xzf ./actions-runner-linux-arm64-2.277.1.tar.gz
+
+$ ./config.sh --url https://github.com/{org name} --token {token}
+```
 
 ### Encryption
 
