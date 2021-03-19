@@ -65,10 +65,8 @@ apt-get install docker-ce docker-ce-cli containerd.io -y
 
 ${install_config_runner}
 
-# config runner for rootless docker
-cd /home/$USER_NAME/actions-runner/
-#echo DOCKER_HOST=unix:///run/user/$USER_ID/docker.sock >>.env
-#echo PATH=/home/$USER_NAME/bin:$PATH >>.env
+# add user to docker group
+usermod -aG docker runners
 
 ${post_install}
 

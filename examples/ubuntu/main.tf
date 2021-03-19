@@ -1,5 +1,5 @@
 locals {
-  environment = "Proj-openssl"
+  environment = var.environment
   aws_region  = "eu-west-1"
 }
 
@@ -14,7 +14,7 @@ module "runners" {
 
   aws_region = local.aws_region
   vpc_id     = var.github_vpc_id
-  subnet_ids = ["subnet-0b66c1640c606ab29"] # module.vpc.private_subnets
+  subnet_ids = var.github_subnet_ids
 
   environment = local.environment
   tags = {
@@ -34,7 +34,7 @@ module "runners" {
   runners_lambda_zip                = "lambdas-download/runners.zip"
 
   enable_organization_runners = false
-  runner_extra_labels         = "ubuntu,example"
+  runner_extra_labels         = var.github_runner_labels
 
   # enable access to the runners via SSM
   enable_ssm_on_runners = true
@@ -51,17 +51,6 @@ module "runners" {
     device_name = "/dev/sda1"
   }
 
-  #runner_log_files = [
-  #  {
-  #    "file_path" : "/var/log/user-data.log",
-  #    "log_stream_name" : "{instance_id}/user_data"
-  #  },
-  #  {
-  #    "file_path" : "/home/runners/actions-runner/_diag/Runner_**.log",
-  #    "log_stream_name" : "{instance_id}/runner"
-  #  }
-  #]
-
   # Uncommet idle config to have idle runners from 9 to 5 in time zone Amsterdam
   # idle_config = [{
   #   cron      = "* * 9-17 * * *"
@@ -72,19 +61,30 @@ module "runners" {
   # disable KMS and encryption
   # encrypt_secrets = false
 
-#  role_permissions_boundary = "arn:aws:iam::aws:policy/PowerUserAccess"
-  role_permissions_boundary = "arn:aws:iam::174781959807:policy/ProjAdminsPermBoundary"
-  key_name = "pethua01"
-  instance_type = "c6g.4xlarge"
+  role_permissions_boundary = var.role_permissions_boundary
+  key_name = aws_key_pair.runner_key.key_name
+  instance_type = var.github_runner_instance_type
 
   runner_additional_security_group_ids = [ aws_security_group.allow_ssm.id ]
 }
 
+resource "aws_key_pair" "runner_key" {
+  key_name = "${var.environment}-github-runner-key"
+  public_key = var.github_runner_key
+}
+
 resource "aws_security_group" "allow_ssm" {
-  name        = "allow_ssm"
-  description = "Allow ssm inbound traffic"
-  vpc_id = var.github_vpc_id
-  
+  name        = "github-allow-ssm"
+  description = "Allow ssm outbound traffic"
+  vpc_id      = var.github_vpc_id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -92,16 +92,10 @@ resource "aws_security_group" "allow_ssm" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
-    "region" = local.aws_region
-    "ssm" = var.github_vpce_id
+    Name = "${var.environment}-github-allow-ssm"
+    region = local.aws_region
+    ssm = var.github_ssm_vpce_id
   }
 
 # the provision (when = destroy) only accept variable from self, so inject the variable into tags map, then use it.
@@ -113,11 +107,11 @@ resource "aws_security_group" "allow_ssm" {
 
 resource "null_resource" "create-endpoint" {
   provisioner "local-exec" {
-    command = "aws ec2 modify-vpc-endpoint --vpc-endpoint-id ${var.github_vpce_id} --add-security-group-ids ${aws_security_group.allow_ssm.id} --region eu-west-1"
+    command = "aws ec2 modify-vpc-endpoint --vpc-endpoint-id ${var.github_ssm_vpce_id} --add-security-group-ids ${aws_security_group.allow_ssm.id} --region eu-west-1"
   }
 
   triggers = {
     sg = aws_security_group.allow_ssm.id
-    vpce = var.github_vpce_id
+    vpce = var.github_ssm_vpce_id
   }
 }
