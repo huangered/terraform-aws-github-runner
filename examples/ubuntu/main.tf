@@ -33,7 +33,7 @@ module "runners" {
   runner_binaries_syncer_lambda_zip = "lambdas-download/runner-binaries-syncer.zip"
   runners_lambda_zip                = "lambdas-download/runners.zip"
 
-  enable_organization_runners = false
+  enable_organization_runners = true
   runner_extra_labels         = var.github_runner_labels
 
   # enable access to the runners via SSM
@@ -114,4 +114,16 @@ resource "null_resource" "create-endpoint" {
     sg = aws_security_group.allow_ssm.id
     vpce = var.github_ssm_vpce_id
   }
+}
+
+# add special api gateway
+data "aws_api_gateway_domain_name" "domain" {
+  domain_name = "api.gl-dev.arm.com"
+}
+
+resource "aws_apigatewayv2_api_mapping" "api-gateway-mapping" {
+  api_id = module.runners.webhook.gateway.id
+  domain_name = data.aws_api_gateway_domain_name.domain.id
+  api_mapping_key = "openssl"
+  stage = "$default"
 }
